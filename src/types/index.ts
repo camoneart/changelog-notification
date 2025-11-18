@@ -20,6 +20,7 @@ export interface AppConfig {
   };
   lastKnownSha?: string;
   lastCheckTime?: string;
+  blogFeeds?: BlogFeedConfig;
 }
 
 export interface GitHubCommit {
@@ -33,4 +34,26 @@ export interface GitHubCommit {
     };
   };
   html_url: string;
+}
+
+export interface BlogFeedItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  guid: string;
+  description?: string;
+  author?: string;
+}
+
+export interface FeedSource {
+  name: string;
+  displayName: string;
+  feedUrl: string;
+  webUrl: string;
+  lastKnownGuid?: string;
+  lastCheckTime?: string;
+}
+
+export interface BlogFeedConfig {
+  sources: FeedSource[];
 }

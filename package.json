@@ -1,7 +1,7 @@
 {
-  "name": "cc-changelog-notification",
+  "name": "changelog-notification",
   "version": "1.0.0",
-  "description": "Desktop notification app for Claude Code CHANGELOG.md updates",
+  "description": "Desktop notification app for multiple changelog and blog updates (Claude Code, React, Next.js)",
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc",
@@ -26,11 +26,12 @@
   },
   "dependencies": {
     "@octokit/rest": "^20.0.0",
-    "node-notifier": "^10.0.0"
+    "node-notifier": "^10.0.0",
+    "rss-parser": "^3.13.0"
   },
   "build": {
-    "appId": "com.example.cc-changelog-notification",
-    "productName": "Claude Code Changelog Notifier",
+    "appId": "com.example.changelog-notification",
+    "productName": "Changelog Notifier",
     "directories": {
       "output": "release"
     },

@@ -2,12 +2,14 @@ import { app, ipcMain, Tray, Menu, nativeImage, shell } from 'electron';
 import { GitHubService } from '../services/GitHubService';
 import { NotificationService } from '../services/NotificationService';
 import { ConfigService } from '../services/ConfigService';
+import { BlogFeedService } from '../services/BlogFeedService';
 import { AppConfig } from '../types';
 
 class ChangelogMonitor {
   private githubService!: GitHubService;
   private notificationService!: NotificationService;
   private configService!: ConfigService;
+  private blogFeedService!: BlogFeedService;
   private config!: AppConfig;
   private tray: Tray | null = null;
   private pollInterval: NodeJS.Timeout | null = null;
@@ -15,7 +17,7 @@ class ChangelogMonitor {
   async init(): Promise<void> {
     this.configService = new ConfigService();
     this.config = await this.configService.loadConfig();
-    
+
     this.githubService = new GitHubService(
       this.config.github.owner,
       this.config.github.repo,
@@ -23,9 +25,13 @@ class ChangelogMonitor {
       process.env.GITHUB_TOKEN,
       this.configService
     );
-    
+
     this.notificationService = new NotificationService(this.config.notification.soundEnabled);
-    
+
+    // BlogFeedServiceの初期化
+    const blogSources = this.config.blogFeeds?.sources || [];
+    this.blogFeedService = new BlogFeedService(blogSources);
+
     this.createTray();
     this.setupIPC();
     this.startPolling();
@@ -37,7 +43,7 @@ class ChangelogMonitor {
       if (process.platform === 'darwin') {
         // macOSではアイコンなしでタイトルのみ表示も可能
         this.tray = new Tray(nativeImage.createEmpty());
-        this.tray.setTitle('CC'); // メニューバーにテキストを表示
+        this.tray.setTitle('CL'); // メニューバーにテキストを表示（ChangeLogの略）
         console.log('✅ Tray created with text title for macOS');
       } else {
         // 他のプラットフォーム用のアイコン
@@ -52,7 +58,7 @@ class ChangelogMonitor {
         console.log('✅ Tray created with icon');
       }
       
-      this.tray.setToolTip('Claude Code Changelog Notifier');
+      this.tray.setToolTip('Changelog Notifier');
       this.updateTrayMenu();
     } catch (error) {
       console.error('❌ Failed to create tray:', error);
@@ -62,7 +68,7 @@ class ChangelogMonitor {
   private updateTrayMenu(): void {
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: '🔔 Claude Code Notifier',
+        label: '🔔 Changelog Notifier',
         enabled: false
       },
       { type: 'separator' },
@@ -101,10 +107,23 @@ class ChangelogMonitor {
           this.notificationService.showTestNotification();
         }
       },
+      { type: 'separator' },
       {
-        label: '🌐 View on GitHub',
+        label: '🌐 View CC on GitHub',
         click: () => {
           shell.openExternal('https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md');
+        }
+      },
+      {
+        label: '🌐 View React Blog',
+        click: () => {
+          shell.openExternal('https://react.dev/blog');
+        }
+      },
+      {
+        label: '🌐 View Next.js Blog',
+        click: () => {
+          shell.openExternal('https://nextjs.org/blog');
         }
       },
       { type: 'separator' },
@@ -116,7 +135,7 @@ class ChangelogMonitor {
         }
       }
     ]);
-    
+
     this.tray?.setContextMenu(contextMenu);
   }
 
@@ -143,18 +162,44 @@ class ChangelogMonitor {
 
   private async checkForUpdates(): Promise<void> {
     try {
+      // Claude Code CHANGELOGのチェック
       console.log('🔍 Checking for CHANGELOG.md updates...');
       const hasChanges = await this.githubService.checkForChanges();
       console.log('📊 Changes detected:', hasChanges);
-      
+
       if (hasChanges && this.config.notification.enabled) {
         const latestVersion = await this.githubService.getLatestVersion();
         console.log('📦 Latest version:', latestVersion?.version);
-        
+
         if (latestVersion) {
           const githubUrl = this.githubService.getCommitUrl();
           console.log('🔔 Sending notification for version:', latestVersion.version);
           await this.notificationService.showChangelogNotification(latestVersion, githubUrl);
+        }
+      }
+
+      // ブログフィードのチェック
+      console.log('🔍 Checking for blog updates...');
+      const blogUpdates = await this.blogFeedService.checkForUpdates();
+
+      for (const [sourceName, item] of blogUpdates) {
+        if (item && this.config.notification.enabled) {
+          const source = this.blogFeedService.getSource(sourceName);
+          if (source) {
+            console.log(`🔔 Sending notification for ${source.displayName}: ${item.title}`);
+            await this.notificationService.showBlogNotification(source.displayName, item, source.webUrl);
+
+            // 設定を更新してGUIDを保存
+            this.blogFeedService.updateSourceGuid(sourceName, item.guid);
+            if (this.config.blogFeeds) {
+              const sourceIndex = this.config.blogFeeds.sources.findIndex(s => s.name === sourceName);
+              if (sourceIndex >= 0) {
+                this.config.blogFeeds.sources[sourceIndex].lastKnownGuid = item.guid;
+                this.config.blogFeeds.sources[sourceIndex].lastCheckTime = new Date().toISOString();
+              }
+              await this.configService.updateConfig(this.config);
+            }
+          }
         }
       }
     } catch (error) {

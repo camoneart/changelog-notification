@@ -16,6 +16,22 @@ export class ConfigService {
       owner: 'anthropics',
       filePath: 'CHANGELOG.md',
     },
+    blogFeeds: {
+      sources: [
+        {
+          name: 'react',
+          displayName: 'React Blog',
+          feedUrl: 'https://react.dev/rss.xml',
+          webUrl: 'https://react.dev/blog'
+        },
+        {
+          name: 'nextjs',
+          displayName: 'Next.js Blog',
+          feedUrl: 'https://nextjs.org/feed.xml',
+          webUrl: 'https://nextjs.org/blog'
+        }
+      ]
+    }
   };
 
   constructor() {
@@ -46,6 +62,9 @@ export class ConfigService {
           ...this.defaultConfig.github,
           ...config.github,
         },
+        blogFeeds: {
+          sources: config.blogFeeds?.sources || this.defaultConfig.blogFeeds!.sources
+        }
       };
     } catch (error) {
       console.error('Error loading config:', error);
@@ -79,6 +98,7 @@ export class ConfigService {
         ...currentConfig.github,
         ...updates.github,
       },
+      blogFeeds: updates.blogFeeds || currentConfig.blogFeeds
     };
 
     await this.saveConfig(newConfig);

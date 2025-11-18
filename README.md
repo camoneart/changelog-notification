@@ -1,15 +1,19 @@
-# Claude Code Changelog Notification Tool
+# Changelog Notification Tool
 
-Notification tool for Claude Code CHANGELOG.md updates. Monitor anthropics/claude-code releases and get instant notifications when new versions are available.
+Multi-source changelog and blog update notification tool. Monitor Claude Code releases, React blog posts, and Next.js blog posts with instant desktop notifications.
 
 ## Features
 
-- 🔔 Desktop notifications for new Claude Code releases
+- 🔔 Desktop notifications for multiple sources:
+  - Claude Code CHANGELOG.md updates
+  - React Blog posts (https://react.dev/blog)
+  - Next.js Blog posts (https://nextjs.org/blog)
 - ⏰ Configurable polling intervals (5 minutes to 2 hours)
 - 🔊 Optional notification sounds (Submarine sound on macOS)
-- 📋 System tray integration
-- ⚙️ Settings panel for customization
-- 🌐 Click notifications to open GitHub changelog
+- 📋 System tray integration with "CL" menu bar text
+- 🌐 Quick access to all monitored sources from tray menu
+- 🎯 Individual notifications for each source
+- ⚙️ Unified notification control (enable/disable all sources together)
 
 ## Status
 
@@ -19,8 +23,8 @@ Notification tool for Claude Code CHANGELOG.md updates. Monitor anthropics/claud
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/camoneart/cc-changelog-notification.git
-   cd cc-changelog-notification
+   git clone https://github.com/camoneart/changelog-notification.git
+   cd changelog-notification
    ```
 
 2. Install dependencies:
@@ -48,25 +52,52 @@ Notification tool for Claude Code CHANGELOG.md updates. Monitor anthropics/claud
 
 ## Usage
 
-1. Start the application - it will appear in your system tray
+1. Start the application - it will appear in your system tray as "CL" (ChangeLog)
 2. Right-click the tray icon to access the context menu:
-   - **Check Now**: Manually check for updates
+   - **Check for Updates Now**: Manually check all sources for updates
+   - **Notifications: ON/OFF**: Toggle notifications for all sources
+   - **Sound: ON/OFF**: Toggle notification sounds
    - **Test Notification**: Test the notification system
-   - **Settings**: Configure polling interval and notification preferences
+   - **View CC on GitHub**: Open Claude Code CHANGELOG
+   - **View React Blog**: Open React blog
+   - **View Next.js Blog**: Open Next.js blog
    - **Quit**: Exit the application
+
+## Monitored Sources
+
+The app monitors the following sources for updates:
+
+1. **Claude Code CHANGELOG**: [anthropics/claude-code/CHANGELOG.md](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
+   - Monitors Git commit SHA changes
+   - Notifies on new version releases
+
+2. **React Blog**: [react.dev/blog](https://react.dev/blog)
+   - RSS feed: https://react.dev/rss.xml
+   - Monitors latest blog post GUID
+
+3. **Next.js Blog**: [nextjs.org/blog](https://nextjs.org/blog)
+   - RSS feed: https://nextjs.org/feed.xml
+   - Monitors latest blog post GUID
 
 ## Configuration
 
 The app stores its configuration in your system's user data directory:
-- **macOS**: `~/Library/Application Support/cc-changelog-notification/config.json`
-- **Windows**: `%APPDATA%\\cc-changelog-notification\\config.json`
-- **Linux**: `~/.config/cc-changelog-notification/config.json`
+- **macOS**: `~/Library/Application Support/changelog-notification/config.json`
+- **Windows**: `%APPDATA%\\changelog-notification\\config.json`
+- **Linux**: `~/.config/changelog-notification/config.json`
 
 ### Configuration Options
 
-- `notification.enabled`: Enable/disable notifications
+- `notification.enabled`: Enable/disable notifications for all sources
 - `notification.soundEnabled`: Enable/disable notification sounds
 - `notification.pollInterval`: Check interval in minutes (5-120)
+- `blogFeeds.sources`: Array of blog feed configurations
+  - `name`: Source identifier (e.g., "react", "nextjs")
+  - `displayName`: Human-readable name for notifications
+  - `feedUrl`: RSS feed URL
+  - `webUrl`: Web URL for the blog
+  - `lastKnownGuid`: Last seen blog post GUID (auto-updated)
+  - `lastCheckTime`: Timestamp of last check (auto-updated)
 
 ## GitHub Token (Optional but Recommended)
 
@@ -86,9 +117,12 @@ While the tool works without a token (60 API calls/hour), setting up a GitHub to
 - pnpm package manager
 - **macOS only**: `terminal-notifier` (automatically installed via Homebrew when running the app)
 
-## Monitored Repository
+## Dependencies
 
-This app monitors: [Claude Code CHANGELOG.md](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
+- `@octokit/rest`: GitHub API client for CHANGELOG monitoring
+- `rss-parser`: RSS feed parser for blog monitoring
+- `node-notifier`: Cross-platform notification system
+- `electron`: Desktop application framework
 
 ## License
 

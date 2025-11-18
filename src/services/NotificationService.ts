@@ -1,5 +1,5 @@
 import notifier from 'node-notifier';
-import { ChangelogEntry } from '../types';
+import { ChangelogEntry, BlogFeedItem } from '../types';
 import { shell } from 'electron';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -88,11 +88,11 @@ export class NotificationService {
 
   async showErrorNotification(error: string): Promise<void> {
     notifier.notify({
-      title: 'Claude Code Notifier Error',
+      title: 'Changelog Notifier Error',
       message: error,
       icon: this.getIconPath(),
       sound: false,
-      timeout: false, // エラー通知も手動削除に変更
+      timeout: false,
     });
   }
 
@@ -101,7 +101,7 @@ export class NotificationService {
     if (process.platform === 'darwin') {
       try {
         const soundOption = this.soundEnabled ? '-sound Submarine' : '';
-        await this.execAsync(`terminal-notifier -title "Claude Code Notifier" -message "Notification test successful! The app is working correctly." ${soundOption}`);
+        await this.execAsync(`terminal-notifier -title "Changelog Notifier" -message "Notification test successful! The app is working correctly." ${soundOption}`);
         console.log('✅ terminal-notifier notification sent');
         return;
       } catch (error) {
@@ -111,13 +111,74 @@ export class NotificationService {
 
     // フォールバック：通常のnode-notifier
     notifier.notify({
-      title: 'Claude Code Notifier',
+      title: 'Changelog Notifier',
       message: 'Notification test successful! The app is working correctly.',
       icon: this.getIconPath(),
-      sound: this.soundEnabled ? 'Basso' : false, // Bassoに変更
-      timeout: false, // テスト通知も手動削除に変更
-      contentImage: '', // macOS用追加オプション
-      appIcon: '', // macOS用追加オプション
+      sound: this.soundEnabled ? 'Basso' : false,
+      timeout: false,
+      contentImage: '',
+      appIcon: '',
     } as any);
+  }
+
+  async showBlogNotification(sourceName: string, item: BlogFeedItem, webUrl: string): Promise<void> {
+    const title = `${sourceName} Updated!`;
+    const message = this.formatBlogMessage(item);
+
+    // macOSでterminal-notifierを使用
+    if (process.platform === 'darwin') {
+      try {
+        const soundOption = this.soundEnabled ? '-sound Submarine' : '';
+        const escapedMessage = message.replace(/"/g, '\\"').replace(/'/g, "\\'");
+        const escapedTitle = title.replace(/"/g, '\\"');
+        const url = item.link || webUrl;
+
+        await this.execAsync(
+          `terminal-notifier -title "${escapedTitle}" -message "${escapedMessage}" -open "${url}" ${soundOption}`
+        );
+        console.log(`✅ Blog notification sent for ${sourceName} via terminal-notifier`);
+        return;
+      } catch (error) {
+        console.error('❌ terminal-notifier failed, falling back to node-notifier:', error);
+      }
+    }
+
+    // フォールバック：通常のnode-notifier
+    notifier.notify({
+      title,
+      message,
+      icon: this.getIconPath(),
+      sound: this.soundEnabled ? 'Basso' : false,
+      wait: true,
+      timeout: false,
+      actions: ['View Post', 'Dismiss'],
+      contentImage: '',
+      appIcon: '',
+    } as any, (err: any, response: any, metadata: any) => {
+      if (err) {
+        console.error('Notification error:', err);
+        return;
+      }
+
+      const url = item.link || webUrl;
+      if (metadata?.activationType === 'actionClicked') {
+        if (metadata.activationValue === 'View Post') {
+          shell.openExternal(url);
+        }
+      } else if (response === 'activate') {
+        shell.openExternal(url);
+      }
+    });
+  }
+
+  private formatBlogMessage(item: BlogFeedItem): string {
+    const maxLength = 150;
+    let message = item.title;
+
+    if (message.length > maxLength) {
+      message = message.substring(0, maxLength) + '...';
+    }
+
+    return message;
   }
 }
